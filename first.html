@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Attendance Management System</title>
+  <style>
+    :root{--accent:#2563eb;--muted:#6b7280;--card:#ffffff}
+    *{box-sizing:border-box}
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+      margin: 0;
+      color: #111;
+      background: url('https://thumbs.dreamstime.com/b/text-sign-showing-attendance-word-going-regularly-being-present-place-event-number-people-displaying-business-263841224.jpg') no-repeat center center fixed;
+      background-size: cover;
+    }
+
+    /* overlay for readability */
+    .overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(255,255,255,0.77);
+      z-index: 0;
+      pointer-events: none;
+    }
+
+    header{
+      background: linear-gradient(90deg,#0ea5e9, #2563eb);
+      color:#fff;
+      padding:18px 20px;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      position: relative;
+      z-index: 1;
+    }
+    header h1{font-size:18px;margin:0}
+    header nav a{
+      color:rgba(255,255,255,0.95);
+      margin-left:14px;
+      text-decoration:none;
+      font-weight:600;
+      cursor:pointer;
+    }
+
+    .container{max-width:1100px;margin:28px auto;padding:0 16px;position:relative;z-index:1}
+    .card{background:var(--card);border-radius:12px;padding:18px;box-shadow:0 6px 18px rgba(15,23,42,0.06);}
+    .grid{display:grid;grid-template-columns:1fr 360px;gap:18px}
+
+    .auth{display:flex;gap:12px;align-items:flex-start}
+    .btn{background:var(--accent);color:#fff;padding:10px 12px;border-radius:8px;border:none;cursor:pointer;font-weight:600}
+    .btn.secondary{background:transparent;color:var(--accent);border:2px solid rgba(37,99,235,0.12)}
+    .input{padding:10px;border-radius:8px;border:1px solid #e5e7eb;width:100%}
+
+    .small{font-size:13px;color:var(--muted)}
+    .dash-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:12px}
+    .dash-item{padding:12px;border-radius:10px;background:linear-gradient(180deg,#fff,#fbfbff);}
+
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:8px;text-align:left;border-bottom:1px solid #f1f5f9}
+    .muted{color:var(--muted)}
+
+    footer{margin:24px 0;text-align:center;color:var(--muted);font-size:13px;position:relative;z-index:1}
+
+    /* FAQ collapse */
+    .faq-item{border-bottom:1px solid #f1f5f9;padding:10px 0}
+    .faq-q{cursor:pointer;font-weight:600}
+    .faq-a{display:none;padding-top:8px;color:var(--muted)}
+
+    /* responsive */
+    @media (max-width:900px){.grid{grid-template-columns:1fr;}.dash-grid{grid-template-columns:1fr 1fr}}
+    @media (max-width:520px){.dash-grid{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+  <div class="overlay" aria-hidden="true"></div>
+
+  <header>
+    <h1>Attendance Management System</h1>
+    <nav>
+      <a onclick="showSection('home')">Home</a>
+      <a onclick="showSection('about')">About</a>
+      <a onclick="showSection('feedbackSection')">Feedback</a>
+      <a onclick="showSection('contact')">Contact</a>
+      <a onclick="showSection('faq')">FAQ</a>
+    </nav>
+  </header>
+
+  <main class="container">
+    <!-- HOME (Login / Signup + Dashboard area) -->
+    <section id="home" class="card">
+      <div class="grid">
+        <div>
+          <h2>Login / Signup</h2>
+          <p class="small">Register as Student, Teacher, or Parent to manage and view attendance.</p>
+
+          <div style="margin-top:12px" class="auth">
+            <div style="flex:1">
+              <label class="small">Name</label>
+              <input id="name" class="input" placeholder="Full name" />
+              <div style="margin-top:8px;display:flex;gap:8px">
+                <div style="flex:1">
+                  <label class="small">Email</label>
+                  <input id="email" class="input" placeholder="email@example.com" />
+                </div>
+                <div style="width:140px">
+                  <label class="small">Role</label>
+                  <select id="role" class="input">
+                    <option value="student">Student</option>
+                    <option value="teacher">Teacher</option>
+                    <option value="parent">Parent</option>
+                  </select>
+                </div>
+              </div>
+
+              <div style="margin-top:10px;display:flex;gap:8px">
+                <button class="btn" onclick="signup()">Sign Up</button>
+                <button class="btn secondary" onclick="login()">Login</button>
+              </div>
+              <div style="margin-top:8px">
+                <small class="small">Press Enter to attempt login as well.</small>
+              </div>
+            </div>
+          </div>
+
+          <hr style="margin:16px 0">
+
+          <!-- Dashboard area (appears after login) -->
+          <div id="dashboardArea" style="display:none">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+              <h3 id="welcome"></h3>
+              <div>
+                <button class="btn secondary" onclick="logout()">Logout</button>
+              </div>
+            </div>
+
+            <div class="dash-grid">
+              <div class="dash-item"><strong id="statStudents">0</strong><div class="small">Total Students</div></div>
+              <div class="dash-item"><strong id="statTeachers">0</strong><div class="small">Total Teachers</div></div>
+              <div class="dash-item"><strong id="statAttendanceToday">0</strong><div class="small">Marked Today</div></div>
+            </div>
+
+            <!-- Teacher controls -->
+            <div id="teacherControls" style="margin-top:12px;display:none" class="card">
+              <h4>Teacher — Mark Attendance</h4>
+              <div style="display:flex;gap:8px;margin-bottom:8px">
+                <input id="attendanceDate" class="input" type="date" />
+                <button class="btn" onclick="renderAttendanceList()">Load Students</button>
+              </div>
+              <div id="attendanceList"></div>
+            </div>
+
+            <!-- Student view -->
+            <div id="studentView" style="margin-top:12px;display:none" class="card">
+              <h4>Student — Your Attendance</h4>
+              <div id="studentRecords"></div>
+            </div>
+
+            <!-- Parent view (includes feedback area) -->
+            <div id="parentView" style="margin-top:12px;display:none" class="card">
+              <h4>Parent — Child Attendance & Feedback</h4>
+
+              <div style="display:flex;gap:8px;margin-bottom:8px">
+                <select id="childSelect" class="input"></select>
+                <button class="btn" onclick="showChildRecords()">View</button>
+              </div>
+              <div id="childRecords"></div>
+
+              <div style="margin-top:8px">
+                <label class="small">Give Feedback (Parents & Students)</label>
+                <textarea id="feedbackText" class="input" rows="3" placeholder="Write feedback..."></textarea>
+                <div style="margin-top:8px;display:flex;gap:8px">
+                  <button class="btn" onclick="submitFeedback()">Submit Feedback</button>
+                </div>
+                <div id="feedbackList" style="margin-top:8px"></div>
+              </div>
+            </div>
+
+            <div id="teacherReports" style="margin-top:12px;display:none" class="card">
+              <h4>Teacher — Reports</h4>
+              <div id="reportArea"></div>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ABOUT -->
+    <section id="about" class="card" style="margin-top:16px;display:none">
+      <h2>About Us</h2>
+      <p class="small">The Desktop-Based Attendance Management System is developed as a software solution to modernize and automate attendance tracking. This system provides a fast, secure, and user-friendly platform for institutions and organizations to maintain accurate attendance records.
+Our goal is to reduce manual effort, eliminate errors, and make data management more efficient.</p>
+    </section>
+
+    <!-- GENERAL FEEDBACK SECTION (site-level) -->
+    <section id="feedbackSection" class="card" style="margin-top:16px;display:none">
+      <h2>Feedback</h2>
+      <p class="small">Note: Only logged-in Students & Parents can submit feedback from the dashboard area. Below are submitted feedback entries (if any).</p>
+      <div id="feedbackSectionList" style="margin-top:12px"></div>
+    </section>
+
+    <!-- CONTACT -->
+    <section id="contact" class="card" style="margin-top:16px;display:none">
+  <h2>Contact</h2>
+  <div class="contact-info">
+    <p><strong>College:</strong> Devender Institute of Engineering and Technology</p>
+    <p><strong>Phone:</strong> 7894781588</p>
+    <p><strong>Email:</strong> asd@gmail.com</p>
+  </div>
+</section>
+
+
+    <!-- FAQ -->
+    <section id="faq" class="card" style="margin-top:16px;display:none">
+      <h2>FAQ</h2>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">Q: Where is data stored?</div>
+        <div class="faq-a">A: Data is stored in your browser's localStorage. To persist data centrally, integrate a backend and database.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">Q: How to make it live on the web?</div>
+        <div class="faq-a">A: Host the HTML/JS on a static host (Netlify, Vercel) for static use, or add a Node.js backend + DB and host on a server for multi-user persistence.</div>
+      </div>
+
+      <div class="faq-item">
+        <div class="faq-q" onclick="toggleFAQ(this)">Q: Who can submit feedback?</div>
+        <div class="faq-a">A: Only logged-in Students and Parents can submit feedback through their dashboard. Everyone can view submitted feedback in the Feedback section.</div>
+      </div>
+    </section>
+
+    <footer>© 2025 Attendance Management System — Developed by Garvit Kulhari and Devendra Saini</footer>
+  </main>
+
+  <script>
+    /**********************
+     * Simple client-side data model using localStorage
+     * - users: {id,name,email,role}
+     * - attendance: {id,date,studentId,status}
+     * - feedbacks: {id, authorId, text, date}
+     ***********************/
+
+    function uid(prefix='id'){return prefix+Math.random().toString(36).slice(2,9)}
+
+    const DB = {
+      get(key){ return JSON.parse(localStorage.getItem(key) || 'null') },
+      set(key,val){ localStorage.setItem(key, JSON.stringify(val)) }
+    }
+
+    function readUsers(){ return DB.get('ams_users') || [] }
+    function saveUsers(u){ DB.set('ams_users', u) }
+    function readAttendance(){ return DB.get('ams_attendance') || [] }
+    function saveAttendance(a){ DB.set('ams_attendance', a) }
+    function readFeedbacks(){ return DB.get('ams_feedbacks') || [] }
+    function saveFeedbacks(f){ DB.set('ams_feedbacks', f) }
+
+    // UI helpers
+    function showSection(id){
+      // hide all major sections (home, about, feedbackSection, contact, faq)
+      document.querySelectorAll('main > section').forEach(s => s.style.display = 'none');
+      const el = document.getElementById(id);
+      if(el) el.style.display = 'block';
+      // refresh feedback list if needed
+      if(id === 'feedbackSection') renderFeedbackSectionList();
+      // scroll to top of that section
+      setTimeout(()=>{ el && el.scrollIntoView({behavior:'smooth'}); }, 50);
+    }
+
+    // signup/login
+    function signup(){
+      const name = document.getElementById('name').value.trim();
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      const role = document.getElementById('role').value;
+      if(!name || !email){ alert('Enter name and email'); return }
+      let users = readUsers();
+      if(users.some(u => u.email === email)){ alert('Email already registered. Use login.'); return }
+      users.push({ id: uid('u_'), name, email, role });
+      saveUsers(users);
+      alert('Registered successfully. Now login.');
+      // clear name field but keep email to login quickly
+      document.getElementById('name').value = '';
+    }
+
+    function login(){
+      const email = document.getElementById('email').value.trim().toLowerCase();
+      if(!email){ alert('Enter email to login'); return }
+      const u = readUsers().find(x => x.email === email);
+      if(!u){ alert('User not found. Please sign up first.'); return }
+      window.currentUser = u;
+      renderDashboard();
+      // ensure home is visible (dashboard lives on home)
+      showSection('home');
+    }
+
+    function logout(){
+      window.currentUser = null;
+      document.getElementById('dashboardArea').style.display = 'none';
+      document.getElementById('welcome').innerText = '';
+      alert('Logged out');
+    }
+
+    function renderDashboard(){
+      document.getElementById('dashboardArea').style.display = 'block';
+      document.getElementById('welcome').innerText = `Welcome, ${window.currentUser.name} — ${window.currentUser.role}`;
+      const users = readUsers();
+      document.getElementById('statStudents').innerText = users.filter(x => x.role === 'student').length;
+      document.getElementById('statTeachers').innerText = users.filter(x => x.role === 'teacher').length;
+
+      document.getElementById('teacherControls').style.display = window.currentUser.role === 'teacher' ? 'block' : 'none';
+      document.getElementById('teacherReports').style.display = window.currentUser.role === 'teacher' ? 'block' : 'none';
+      document.getElementById('studentView').style.display = window.currentUser.role === 'student' ? 'block' : 'none';
+      document.getElementById('parentView').style.display = window.currentUser.role === 'parent' ? 'block' : 'none';
+
+      if(window.currentUser.role === 'parent'){
+        const select = document.getElementById('childSelect'); select.innerHTML = '';
+        readUsers().filter(x => x.role === 'student').forEach(s => {
+          const opt = document.createElement('option'); opt.value = s.id; opt.textContent = s.name; select.appendChild(opt);
+        });
+        renderFeedbackList(); // inside parent view
+      }
+
+      if(window.currentUser.role === 'student') showStudentRecords(window.currentUser.id);
+      // default date to today
+      const dateInput = document.getElementById('attendanceDate');
+      if(dateInput) dateInput.value = new Date().toISOString().slice(0,10);
+      updateAttendanceStat();
+    }
+
+    // attendance UI
+    function renderAttendanceList(){
+      const date = document.getElementById('attendanceDate').value;
+      if(!date){ alert('Pick a date'); return }
+      const students = readUsers().filter(x => x.role === 'student');
+      const attendance = readAttendance();
+      const c = document.getElementById('attendanceList'); c.innerHTML = '';
+      if(students.length === 0){ c.innerHTML = '<div class="small muted">No students yet.</div>'; return }
+      const tbl = document.createElement('table');
+      tbl.innerHTML = '<thead><tr><th>Student</th><th>Email</th><th>Status</th></tr></thead>';
+      const tb = document.createElement('tbody');
+      students.forEach(s => {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td>${s.name}</td><td class="muted">${s.email}</td><td></td>`;
+        const td = tr.querySelector('td:last-child');
+        const present = document.createElement('button'); present.textContent = 'Present'; present.className = 'btn'; present.style.marginRight = '6px';
+        const absent = document.createElement('button'); absent.textContent = 'Absent'; absent.className = 'btn secondary';
+        present.onclick = () => { saveAttendanceRecord(date, s.id, 'present'); renderAttendanceList(); }
+        absent.onclick = () => { saveAttendanceRecord(date, s.id, 'absent'); renderAttendanceList(); }
+        td.appendChild(present); td.appendChild(absent);
+        const rec = attendance.find(r => r.date === date && r.studentId === s.id);
+        if(rec) td.appendChild(document.createTextNode('  — ' + rec.status));
+        tb.appendChild(tr);
+      });
+      tbl.appendChild(tb); c.appendChild(tbl);
+      updateAttendanceStat();
+    }
+
+    function saveAttendanceRecord(date, studentId, status){
+      let attendance = readAttendance();
+      attendance = attendance.filter(r => !(r.date === date && r.studentId === studentId));
+      attendance.push({ id: uid('a_'), date, studentId, status });
+      saveAttendance(attendance);
+      alert('Saved');
+      updateAttendanceStat();
+    }
+
+    function updateAttendanceStat(){
+      const today = new Date().toISOString().slice(0,10);
+      const marked = readAttendance().filter(r => r.date === today).length;
+      document.getElementById('statAttendanceToday').innerText = marked;
+    }
+
+    // student/parent views
+    function showStudentRecords(studentId){
+      const attendance = readAttendance().filter(r => r.studentId === studentId);
+      const div = document.getElementById('studentRecords'); div.innerHTML = '';
+      if(attendance.length === 0){ div.innerHTML = '<div class="small muted">No records yet.</div>'; return }
+      const tbl = document.createElement('table'); tbl.innerHTML = '<thead><tr><th>Date</th><th>Status</th></tr></thead>';
+      const tb = document.createElement('tbody');
+      attendance.sort((a,b) => b.date.localeCompare(a.date)).forEach(r => {
+        const tr = document.createElement('tr'); tr.innerHTML = `<td>${r.date}</td><td>${r.status}</td>`; tb.appendChild(tr);
+      });
+      tbl.appendChild(tb); div.appendChild(tbl);
+    }
+
+    function showChildRecords(){
+      const id = document.getElementById('childSelect').value; const div = document.getElementById('childRecords'); div.innerHTML = '';
+      if(!id){ div.innerHTML = '<div class="small muted">Select child</div>'; return }
+      const attendance = readAttendance().filter(r => r.studentId === id);
+      if(attendance.length === 0){ div.innerHTML = '<div class="small muted">No records yet.</div>'; return }
+      const tbl = document.createElement('table'); tbl.innerHTML = '<thead><tr><th>Date</th><th>Status</th></tr></thead>';
+      const tb = document.createElement('tbody');
+      attendance.sort((a,b) => b.date.localeCompare(a.date)).forEach(r => {
+        const tr = document.createElement('tr'); tr.innerHTML = `<td>${r.date}</td><td>${r.status}</td>`; tb.appendChild(tr);
+      });
+      tbl.appendChild(tb); div.appendChild(tbl);
+    }
+
+    // feedback (parent & student submit inside dashboard)
+    function submitFeedback(){
+      if(!window.currentUser){ alert('Login first'); return }
+      const text = document.getElementById('feedbackText').value.trim(); if(!text){ alert('Enter feedback'); return }
+      const f = readFeedbacks(); f.push({ id: uid('f_'), authorId: window.currentUser.id, text, date: new Date().toLocaleString() });
+      saveFeedbacks(f);
+      document.getElementById('feedbackText').value = '';
+      renderFeedbackList();
+      alert('Feedback submitted');
+    }
+
+    function renderFeedbackList(){
+      const f = readFeedbacks().slice().reverse();
+      const out = document.getElementById('feedbackList'); if(!out) return; out.innerHTML = '';
+      if(f.length === 0){ out.innerHTML = '<div class="small muted">No feedback yet.</div>'; return }
+      f.forEach(item => {
+        const user = readUsers().find(u => u.id === item.authorId);
+        const div = document.createElement('div'); div.className = 'small'; div.style.marginBottom = '6px';
+        div.innerHTML = `<strong>${user?user.name:'Unknown'}</strong> <span class="muted">(${item.date})</span><div>${item.text}</div>`;
+        out.appendChild(div);
+      });
+    }
+
+    // render site-level feedback list (viewable by everyone)
+    function renderFeedbackSectionList(){
+      const target = document.getElementById('feedbackSectionList'); target.innerHTML = '';
+      const f = readFeedbacks().slice().reverse();
+      if(f.length === 0){ target.innerHTML = '<div class="small muted">No feedback yet.</div>'; return }
+      f.forEach(item => {
+        const user = readUsers().find(u => u.id === item.authorId);
+        const div = document.createElement('div'); div.className = 'small'; div.style.marginBottom = '8px';
+        div.innerHTML = `<strong>${user ? user.name : 'Unknown'}</strong> <span class="muted">(${item.date})</span><div>${item.text}</div>`;
+        target.appendChild(div);
+      });
+    }
+
+    // contact form (client-side only)
+    function submitContact(){
+      const name = document.getElementById('contactName').value.trim();
+      const email = document.getElementById('contactEmail').value.trim();
+      const subject = document.getElementById('contactSubject').value.trim();
+      const message = document.getElementById('contactMessage').value.trim();
+      if(!name || !email || !message){ alert('Please fill name, email and message'); return }
+      // In a real app you'd POST this to a server. For demo we just show a confirmation.
+      alert('Message received. (Demo) Thank you, ' + name + '!');
+      document.getElementById('contactName').value = '';
+      document.getElementById('contactEmail').value = '';
+      document.getElementById('contactSubject').value = '';
+      document.getElementById('contactMessage').value = '';
+    }
+
+    // utilities
+    function toggleFAQ(el){
+      const a = el.nextElementSibling;
+      if(!a) return;
+      a.style.display = (a.style.display === 'block') ? 'none' : 'block';
+    }
+
+    // keyboard: Enter attempts login
+    document.addEventListener('keydown', e => { if(e.key === 'Enter') login() });
+
+    // expose debug helpers in console
+    window._debug = { readUsers, readAttendance, readFeedbacks, DB };
+
+    // start: show home
+    showSection('home');
+  </script>
+</body>
+</html>
